@@ -1,7 +1,6 @@
 import type { GoogleTask } from './tasksManager.js';
 
 import Clutter from 'gi://Clutter';
-import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
@@ -12,13 +11,82 @@ import * as ModalDialog from 'resource:///org/gnome/shell/ui/modalDialog.js';
 
 import { GoogleTasksManager } from './tasksManager.js';
 
+const EditTaskDialog = GObject.registerClass({
+  GTypeName: 'GoogleTasksEditTaskDialog',
+  Signals: {
+    'task-updated': { param_types: [GObject.TYPE_STRING, GObject.TYPE_STRING] },
+  },
+}, class EditTaskDialog extends ModalDialog.ModalDialog {
+  private _entry!: St.Entry;
+  private _descriptionEntry!: St.Entry;
+
+  _init() {
+    super._init({
+      styleClass: 'google-tasks-add-dialog',
+      destroyOnClose: true,
+    });
+
+    const titleLabel = new St.Label({
+      text: 'Edit Task',
+      style_class: 'google-tasks-dialog-title',
+    });
+    this.contentLayout.add_child(titleLabel);
+
+    this._entry = new St.Entry({
+      style_class: 'google-tasks-dialog-entry',
+      hint_text: 'Task title',
+      can_focus: true,
+      x_expand: true,
+    });
+    this.contentLayout.add_child(this._entry);
+
+    this._descriptionEntry = new St.Entry({
+      style_class: 'google-tasks-dialog-entry',
+      hint_text: 'Description',
+      can_focus: true,
+      x_expand: true,
+    });
+    this.contentLayout.add_child(this._descriptionEntry);
+
+    this.setButtons([
+      {
+        label: 'Cancel',
+        action: () => this.close(),
+        key: Clutter.KEY_Escape,
+      },
+      {
+        label: 'Save',
+        default: true,
+        action: () => this._onSave(),
+      },
+    ]);
+
+    this.setInitialKeyFocus(this._entry);
+  }
+
+  setTask(title: string, notes: string) {
+    this._entry.set_text(title);
+    this._descriptionEntry.set_text(notes);
+  }
+
+  _onSave() {
+    const title = this._entry.get_text().trim();
+    if (title.length > 0) {
+      const description = this._descriptionEntry.get_text().trim();
+      this.emit('task-updated', title, description);
+    }
+    this.close();
+  }
+});
+
 const AddTaskDialog = GObject.registerClass({
   GTypeName: 'GoogleTasksAddTaskDialog',
   Signals: {
-    'task-created': { param_types: [GObject.TYPE_STRING] },
+    'task-created': { param_types: [GObject.TYPE_STRING, GObject.TYPE_STRING] },
   },
 }, class AddTaskDialog extends ModalDialog.ModalDialog {
   private _entry!: St.Entry;
+  private _descriptionEntry!: St.Entry;
 
   _init() {
     super._init({
@@ -40,6 +108,14 @@ const AddTaskDialog = GObject.registerClass({
     });
     this.contentLayout.add_child(this._entry);
 
+    this._descriptionEntry = new St.Entry({
+      style_class: 'google-tasks-dialog-entry',
+      hint_text: 'Description (optional)',
+      can_focus: true,
+      x_expand: true,
+    });
+    this.contentLayout.add_child(this._descriptionEntry);
+
     this.setButtons([
       {
         label: 'Cancel',
@@ -57,9 +133,10 @@ const AddTaskDialog = GObject.registerClass({
   }
 
   _onAdd() {
-    const text = this._entry.get_text().trim();
-    if (text.length > 0) {
-      this.emit('task-created', text);
+    const title = this._entry.get_text().trim();
+    if (title.length > 0) {
+      const description = this._descriptionEntry.get_text().trim();
+      this.emit('task-created', title, description);
     }
     this.close();
   }
@@ -125,11 +202,13 @@ const TasksSection = GObject.registerClass({
     box.add_child(this._tasksList);
   }
 
-  addTask(task: GoogleTask, onComplete?: (task: GoogleTask) => void) {
+  addTask(task: GoogleTask, onComplete?: (task: GoogleTask) => void, onEdit?: (task: GoogleTask) => void) {
     const box = new St.BoxLayout({
       style_class: 'task-box',
       orientation: Clutter.Orientation.HORIZONTAL,
       y_align: Clutter.ActorAlign.CENTER,
+      reactive: true,
+      track_hover: true,
     });
 
     const radio = new St.Button({
@@ -141,7 +220,7 @@ const TasksSection = GObject.registerClass({
     const checkIcon = new St.Icon({
       icon_name: 'object-select-symbolic',
       style_class: 'task-radio-check',
-      icon_size: 8,
+      icon_size: 15,
     });
     checkIcon.opacity = 0;
     radio.set_child(checkIcon);
@@ -157,6 +236,25 @@ const TasksSection = GObject.registerClass({
       y_align: Clutter.ActorAlign.CENTER,
     });
 
+    const textBox = new St.BoxLayout({
+      orientation: Clutter.Orientation.VERTICAL,
+      y_align: Clutter.ActorAlign.CENTER,
+      x_expand: true,
+    });
+    textBox.add_child(label);
+
+    if (task.notes) {
+      const descLabel = new St.Label({
+        text: task.notes,
+        style_class: 'task-description',
+        y_align: Clutter.ActorAlign.CENTER,
+      });
+      descLabel.clutter_text.set_line_wrap(true);
+      descLabel.clutter_text.set_ellipsize(3); // Pango.EllipsizeMode.END
+      descLabel.clutter_text.set_single_line_mode(false);
+      textBox.add_child(descLabel);
+    }
+
     radio.connect('clicked', () => {
       radio.add_style_class_name('task-radio-completed');
       checkIcon.opacity = 255;
@@ -166,8 +264,31 @@ const TasksSection = GObject.registerClass({
         onComplete(task);
     });
 
+    const editButton = new St.Button({
+      style_class: 'task-edit-button',
+      can_focus: true,
+      y_align: Clutter.ActorAlign.CENTER,
+      child: new St.Icon({
+        icon_name: 'document-edit-symbolic',
+        icon_size: 12,
+      }),
+    });
+    editButton.opacity = 0;
+
+    if (onEdit) {
+      editButton.connect('clicked', () => {
+        onEdit(task);
+        return Clutter.EVENT_STOP;
+      });
+
+      box.connect('notify::hover', () => {
+        editButton.opacity = box.hover ? 255 : 0;
+      });
+    }
+
     box.add_child(radio);
-    box.add_child(label);
+    box.add_child(textBox);
+    box.add_child(editButton);
 
     this._tasksList.add_child(box);
   }
@@ -207,10 +328,10 @@ export default class GoogleTasksExtension extends Extension {
         parent.add_child(this._tasksSection);
     }
 
-    this._tasksSection.connect('clicked', () => {
-      Gio.AppInfo.launch_default_for_uri('https://tasks.google.com/', null);
-      dateMenu.menu.close();
-    });
+    // this._tasksSection.connect('clicked', () => {
+    //   Gio.AppInfo.launch_default_for_uri('https://tasks.google.com/', null);
+    //   dateMenu.menu.close();
+    // });
 
     this._tasksSection.connect('add-task-clicked', () => {
       dateMenu.menu.close();
@@ -223,18 +344,18 @@ export default class GoogleTasksExtension extends Extension {
 
   _showAddTaskDialog() {
     const dialog = new AddTaskDialog();
-    dialog.connect('task-created', (_dialog: any, title: string) => {
-      this._onAddTask(title);
+    dialog.connect('task-created', (_dialog: any, title: string, description: string) => {
+      this._onAddTask(title, description);
     });
     dialog.open();
   }
 
-  async _onAddTask(title: string) {
+  async _onAddTask(title: string, description: string) {
     if (!this._tasksManager)
       return;
 
     try {
-      await this._tasksManager.createTask(title);
+      await this._tasksManager.createTask(title, description || undefined);
       this._refreshTasks();
     }
     catch (e) {
@@ -277,10 +398,31 @@ export default class GoogleTasksExtension extends Extension {
     else {
       for (const task of tasks) {
         if (task.title) {
-          this._tasksSection.addTask(task, t => this._onTaskCompleted(t));
+          this._tasksSection.addTask(task, t => this._onTaskCompleted(t), t => this._onTaskEdit(t));
         }
       }
     }
+  }
+
+  _onTaskEdit(task: GoogleTask) {
+    const dateMenu = Main.panel.statusArea.dateMenu as any;
+    if (dateMenu)
+      dateMenu.menu.close();
+
+    const dialog = new EditTaskDialog();
+    dialog.setTask(task.title, task.notes || '');
+    dialog.connect('task-updated', async (_dialog: any, title: string, description: string) => {
+      if (!this._tasksManager || !task.taskListId)
+        return;
+      try {
+        await this._tasksManager.updateTask(task.taskListId, task.id, title, description || undefined);
+        this._refreshTasks();
+      }
+      catch (e) {
+        console.error(`Google Tasks: Failed to update task: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    });
+    dialog.open();
   }
 
   async _onTaskCompleted(task: GoogleTask) {
@@ -290,7 +432,7 @@ export default class GoogleTasksExtension extends Extension {
     try {
       await this._tasksManager.completeTask(task.taskListId, task.id);
       // Brief delay so the completed animation is visible before refreshing
-      GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+      GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, () => {
         this._refreshTasks();
         return GLib.SOURCE_REMOVE;
       });

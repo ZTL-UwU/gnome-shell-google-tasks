@@ -8,6 +8,7 @@ import Soup from 'gi://Soup?version=3.0';
 export interface GoogleTask {
   id: string;
   title: string;
+  notes?: string;
   status: string;
   taskListId?: string;
 }
@@ -88,7 +89,7 @@ export class GoogleTasksManager {
     }
   }
 
-  async createTask(title: string): Promise<void> {
+  async createTask(title: string, notes?: string): Promise<void> {
     try {
       const accessToken = await this._getAccessToken();
 
@@ -100,7 +101,10 @@ export class GoogleTasksManager {
 
       const taskListId = listsData.items[0].id;
       const url = `https://tasks.googleapis.com/tasks/v1/lists/${taskListId}/tasks`;
-      await this._jsonRequest(url, accessToken, 'POST', { title });
+      const body: Record<string, string> = { title };
+      if (notes)
+        body.notes = notes;
+      await this._jsonRequest(url, accessToken, 'POST', body);
     }
     catch (e) {
       console.error(`Google Tasks: Failed to create task: ${e instanceof Error ? e.message : String(e)}`);
@@ -117,6 +121,22 @@ export class GoogleTasksManager {
     }
     catch (e) {
       console.error(`Google Tasks: Failed to complete task: ${e instanceof Error ? e.message : String(e)}`);
+      throw e;
+    }
+  }
+
+  async updateTask(taskListId: string, taskId: string, title: string, notes?: string): Promise<void> {
+    try {
+      const accessToken = await this._getAccessToken();
+
+      const url = `https://tasks.googleapis.com/tasks/v1/lists/${taskListId}/tasks/${taskId}`;
+      const body: Record<string, string> = { title };
+      if (notes !== undefined)
+        body.notes = notes;
+      await this._jsonRequest(url, accessToken, 'PATCH', body);
+    }
+    catch (e) {
+      console.error(`Google Tasks: Failed to update task: ${e instanceof Error ? e.message : String(e)}`);
       throw e;
     }
   }

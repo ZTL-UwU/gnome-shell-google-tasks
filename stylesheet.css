@@ -37,6 +37,12 @@
     color: rgba(255, 255, 255, 0.4);
 }
 
+.task-description {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 1px;
+}
+
 .google-tasks-add-button {
     border-radius: 99px;
     width: 20px;
@@ -57,4 +63,16 @@
 
 .google-tasks-dialog-entry {
     min-width: 300px;
+}
+
+.task-edit-button {
+    border-radius: 99px;
+    width: 20px;
+    height: 20px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.task-edit-button:hover {
+    color: rgba(255, 255, 255, 1);
+    background-color: rgba(255, 255, 255, 0.1);
 }
