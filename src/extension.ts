@@ -471,6 +471,7 @@ const REFRESH_INTERVAL_SECONDS = 20; // 20 seconds
 const REFRESH_INTERVAL_KEY = 'refresh-interval';
 const TASK_SORT_ORDER_KEY = 'task-sort-order';
 const SHOW_COMPLETED_TASKS_KEY = 'show-completed-tasks';
+const COLOR_SCHEME_KEY = 'color-scheme';
 
 type TaskSortOrder = 'my-order' | 'date' | 'deadline' | 'starred-recently' | 'title';
 const VALID_TASK_SORT_ORDERS = new Set<TaskSortOrder>(['my-order', 'date', 'deadline', 'starred-recently', 'title']);
@@ -488,9 +489,13 @@ export default class GoogleTasksExtension extends Extension {
   private _taskLists: GoogleTaskList[] = [];
   private _activeTasksByListId: Map<string, GoogleTask[]> = new Map();
   private _completedTasksByListId: Map<string, GoogleTask[]> = new Map();
+  private _interfaceSettings: Gio.Settings | null = null;
+  private _colorSchemeChangedId: number | null = null;
 
   enable() {
     this._settings = this.getSettings();
+    this._interfaceSettings = this.getSettings('org.gnome.desktop.interface');
+
     this._tasksSection = new TasksSection();
     this._tasksManager = new GoogleTasksManager();
     const dateMenu = Main.panel.statusArea.dateMenu as any;
@@ -535,8 +540,28 @@ export default class GoogleTasksExtension extends Extension {
       });
     }
 
+    if (this._interfaceSettings) {
+      this._colorSchemeChangedId = this._interfaceSettings.connect(`changed::${COLOR_SCHEME_KEY}`, () => {
+        this._updateColorScheme();
+      });
+    }
+
+    this._updateColorScheme();
     this._refreshTasks();
     this._startRefreshTimer();
+  }
+
+  _updateColorScheme() {
+    if (!this._tasksSection || !this._interfaceSettings)
+      return;
+
+    const colorScheme = this._interfaceSettings.get_string(COLOR_SCHEME_KEY);
+    const isLight = colorScheme !== 'prefer-dark';
+
+    if (isLight)
+      this._tasksSection.add_style_class_name('google-tasks-light');
+    else
+      this._tasksSection.remove_style_class_name('google-tasks-light');
   }
 
   _getRefreshIntervalSeconds() {
@@ -837,6 +862,12 @@ export default class GoogleTasksExtension extends Extension {
       this._showCompletedChangedId = null;
     }
     this._settings = null;
+
+    if (this._interfaceSettings && this._colorSchemeChangedId !== null) {
+      this._interfaceSettings.disconnect(this._colorSchemeChangedId);
+      this._colorSchemeChangedId = null;
+    }
+    this._interfaceSettings = null;
 
     this._selectedTaskListId = null;
     this._taskLists = [];

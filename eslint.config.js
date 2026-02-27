@@ -4,4 +4,7 @@ export default antfu({
   stylistic: {
     semi: true,
   },
+  rules: {
+    'prefer-rest-params': 'warn',
+  },
 });

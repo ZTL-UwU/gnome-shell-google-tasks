@@ -116,3 +116,63 @@
     padding-top: 2px;
 }
 
+
+.google-tasks-light .task-radio {
+    border-color: rgba(0, 0, 0, 0.5);
+}
+
+.google-tasks-light .task-radio:hover {
+    border-color: rgba(0, 0, 0, 0.9);
+}
+
+.google-tasks-light .task-radio-completed {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-color: rgba(0, 0, 0, 0.6);
+}
+
+.google-tasks-light .task-label-completed {
+    color: rgba(0, 0, 0, 0.4);
+}
+
+.google-tasks-light .task-description {
+    color: rgba(0, 0, 0, 0.45);
+}
+
+.google-tasks-light .google-tasks-add-button {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.google-tasks-light .google-tasks-add-button:hover {
+    color: rgba(0, 0, 0, 0.9);
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.google-tasks-light .task-edit-button {
+    color: rgba(0, 0, 0, 0.5);
+}
+
+.google-tasks-light .task-edit-button:hover {
+    color: rgba(0, 0, 0, 0.9);
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.google-tasks-light .google-tasks-dropdown-button {
+    color: rgba(0, 0, 0, 0.8);
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+.google-tasks-light .google-tasks-dropdown-button:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.google-tasks-light .tasks-completed-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+.google-tasks-light .tasks-completed-label {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.google-tasks-light .tasks-completed-chevron {
+    color: rgba(0, 0, 0, 0.6);
+}
