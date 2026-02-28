@@ -11,22 +11,27 @@
 .task-radio {
     width: 12px;
     height: 12px;
-    border: 2px solid rgba(255, 255, 255, 0.6);
+    border: 2px solid rgba(128, 128, 128, 0.6);
     border-radius: 99px;
     background-color: transparent;
 }
 
 .task-radio:hover {
-    border-color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(128, 128, 128, 0.9);
 }
 
 .task-radio-check {
-    color: rgba(255, 255, 255, 0.9);
+    opacity: 0.9;
 }
 
 .task-radio-completed {
-    background-color: rgba(255, 255, 255, 0.8);
-    border-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(128, 128, 128, 0.4);
+    border-color: rgba(128, 128, 128, 0.6);
+}
+
+.task-radio-completed:hover {
+    background-color: rgba(128, 128, 128, 0.5);
+    border-color: rgba(128, 128, 128, 0.7);
 }
 
 .task-label {
@@ -35,12 +40,12 @@
 
 .task-label-completed {
     text-decoration: line-through;
-    color: rgba(255, 255, 255, 0.4);
+    opacity: 0.4;
 }
 
 .task-description {
     font-size: 11px;
-    color: rgba(255, 255, 255, 0.4);
+    opacity: 0.4;
     margin-top: 1px;
 }
 
@@ -48,12 +53,12 @@
     border-radius: 8px;
     width: 28px;
     height: 28px;
-    color: rgba(255, 255, 255, 0.7);
+    opacity: 0.7;
 }
 
 .google-tasks-add-button:hover {
-    color: rgba(255, 255, 255, 1);
-    background-color: rgba(255, 255, 255, 0.1);
+    opacity: 1;
+    background-color: rgba(128, 128, 128, 0.3);
 }
 
 .google-tasks-dialog-title {
@@ -70,26 +75,25 @@
     border-radius: 6px;
     width: 20px;
     height: 20px;
-    color: rgba(255, 255, 255, 0.6);
+    opacity: 0.6;
 }
 
 .task-edit-button:hover {
-    color: rgba(255, 255, 255, 1);
-    background-color: rgba(255, 255, 255, 0.1);
+    opacity: 1;
+    background-color: rgba(128, 128, 128, 0.3);
 }
 
 .google-tasks-dropdown-button {
     padding: 6px 10px;
     border-radius: 8px;
-    color: rgba(255, 255, 255, 0.9);
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: rgba(128, 128, 128, 0.15);
     text-align: left;
     font-size: 13px;
     font-weight: 800;
 }
 
 .google-tasks-dropdown-button:hover {
-    background-color: rgba(255, 255, 255, 0.12);
+    background-color: rgba(128, 128, 128, 0.3);
 }
 
 .tasks-completed-toggle {
@@ -99,20 +103,19 @@
 }
 
 .tasks-completed-toggle:hover {
-    background-color: rgba(255, 255, 255, 0.08);
+    background-color: rgba(128, 128, 128, 0.3);
 }
 
 .tasks-completed-label {
     font-size: 12px;
     font-weight: 700;
-    color: rgba(255, 255, 255, 0.7);
+    opacity: 0.7;
 }
 
 .tasks-completed-chevron {
-    color: rgba(255, 255, 255, 0.7);
+    opacity: 0.7;
 }
 
 .tasks-completed-list {
     padding-top: 2px;
 }
-

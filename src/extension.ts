@@ -471,7 +471,6 @@ const REFRESH_INTERVAL_SECONDS = 20; // 20 seconds
 const REFRESH_INTERVAL_KEY = 'refresh-interval';
 const TASK_SORT_ORDER_KEY = 'task-sort-order';
 const SHOW_COMPLETED_TASKS_KEY = 'show-completed-tasks';
-
 type TaskSortOrder = 'my-order' | 'date' | 'deadline' | 'starred-recently' | 'title';
 const VALID_TASK_SORT_ORDERS = new Set<TaskSortOrder>(['my-order', 'date', 'deadline', 'starred-recently', 'title']);
 
@@ -491,6 +490,7 @@ export default class GoogleTasksExtension extends Extension {
 
   enable() {
     this._settings = this.getSettings();
+
     this._tasksSection = new TasksSection();
     this._tasksManager = new GoogleTasksManager();
     const dateMenu = Main.panel.statusArea.dateMenu as any;
