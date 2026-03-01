@@ -8,6 +8,13 @@
     <value value="4" nick="title"/>
   </enum>
 
+  <enum id="org.gnome.shell.extensions.googletasks.TaskTimeframe">
+    <value value="0" nick="all"/>
+    <value value="1" nick="today"/>
+    <value value="2" nick="this-week"/>
+    <value value="3" nick="this-month"/>
+  </enum>
+
   <schema id="org.gnome.shell.extensions.googletasks" path="/org/gnome/shell/extensions/googletasks/">
     <key name="refresh-interval" type="i">
       <default>20</default>
@@ -24,6 +31,11 @@
       <default>true</default>
       <summary>Show completed tasks section</summary>
       <description>Whether to show completed tasks in a collapsible section.</description>
+    </key>
+    <key name="task-timeframe" enum="org.gnome.shell.extensions.googletasks.TaskTimeframe">
+      <default>'all'</default>
+      <summary>Task display timeframe</summary>
+      <description>Which due date range to display in the panel.</description>
     </key>
   </schema>
 </schemalist>

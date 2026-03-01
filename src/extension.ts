@@ -471,8 +471,11 @@ const REFRESH_INTERVAL_SECONDS = 20; // 20 seconds
 const REFRESH_INTERVAL_KEY = 'refresh-interval';
 const TASK_SORT_ORDER_KEY = 'task-sort-order';
 const SHOW_COMPLETED_TASKS_KEY = 'show-completed-tasks';
+const TASK_TIMEFRAME_KEY = 'task-timeframe';
 type TaskSortOrder = 'my-order' | 'date' | 'deadline' | 'starred-recently' | 'title';
+type TaskTimeframe = 'all' | 'today' | 'this-week' | 'this-month';
 const VALID_TASK_SORT_ORDERS = new Set<TaskSortOrder>(['my-order', 'date', 'deadline', 'starred-recently', 'title']);
+const VALID_TASK_TIMEFRAMES = new Set<TaskTimeframe>(['all', 'today', 'this-week', 'this-month']);
 
 export default class GoogleTasksExtension extends Extension {
   private _tasksSection: TasksSectionInstance | null = null;
@@ -481,6 +484,7 @@ export default class GoogleTasksExtension extends Extension {
   private _settingsChangedId: number | null = null;
   private _sortOrderChangedId: number | null = null;
   private _showCompletedChangedId: number | null = null;
+  private _timeframeChangedId: number | null = null;
   private _refreshTimerId: number | null = null;
   private _taskCompleteRefreshTimerId: number | null = null;
   private _selectedTaskListId: string | null = null;
@@ -532,6 +536,10 @@ export default class GoogleTasksExtension extends Extension {
 
       this._showCompletedChangedId = this._settings.connect(`changed::${SHOW_COMPLETED_TASKS_KEY}`, () => {
         this._refreshTasks();
+      });
+
+      this._timeframeChangedId = this._settings.connect(`changed::${TASK_TIMEFRAME_KEY}`, () => {
+        this._renderCurrentTaskList();
       });
     }
 
@@ -619,10 +627,10 @@ export default class GoogleTasksExtension extends Extension {
       this._renderCurrentTaskList();
     });
 
-    const activeTasks = this._sortTasks(this._activeTasksByListId.get(selectedTaskListId) ?? []);
+    const activeTasks = this._sortTasks(this._filterTasksByTimeframe(this._activeTasksByListId.get(selectedTaskListId) ?? []));
     const showCompletedTasks = this._getShowCompletedTasks();
     const completedTasks = showCompletedTasks
-      ? this._sortTasks(this._completedTasksByListId.get(selectedTaskListId) ?? [])
+      ? this._sortTasks(this._filterTasksByTimeframe(this._completedTasksByListId.get(selectedTaskListId) ?? []))
       : [];
     this._tasksSection.clearTasks();
 
@@ -692,6 +700,90 @@ export default class GoogleTasksExtension extends Extension {
       return true;
 
     return this._settings.get_boolean(SHOW_COMPLETED_TASKS_KEY);
+  }
+
+  _getTaskTimeframe(): TaskTimeframe {
+    if (!this._settings)
+      return 'all';
+
+    const configuredTimeframe = this._settings.get_string(TASK_TIMEFRAME_KEY);
+    return VALID_TASK_TIMEFRAMES.has(configuredTimeframe as TaskTimeframe)
+      ? configuredTimeframe as TaskTimeframe
+      : 'all';
+  }
+
+  _filterTasksByTimeframe(tasks: GoogleTask[]): GoogleTask[] {
+    const timeframe = this._getTaskTimeframe();
+    if (timeframe === 'all')
+      return tasks;
+
+    const today = this._formatLocalDate(new Date());
+
+    if (timeframe === 'today') {
+      return tasks.filter(task => this._getTaskDueDate(task) === today);
+    }
+
+    if (timeframe === 'this-week') {
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // Sunday = 0
+      const daysSinceMonday = (dayOfWeek + 6) % 7;
+      const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceMonday);
+      const endOfWeek = new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate() + 6);
+      const startDate = this._formatLocalDate(startOfWeek);
+      const endDate = this._formatLocalDate(endOfWeek);
+
+      return tasks.filter((task) => {
+        const dueDate = this._getTaskDueDate(task);
+        return dueDate !== null && dueDate >= startDate && dueDate <= endDate;
+      });
+    }
+
+    if (timeframe === 'this-month') {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+
+      return tasks.filter((task) => {
+        const dueDate = this._getTaskDueDate(task);
+        if (!dueDate)
+          return false;
+
+        const dueDateParts = dueDate.split('-');
+        if (dueDateParts.length !== 3)
+          return false;
+
+        const dueYear = Number.parseInt(dueDateParts[0], 10);
+        const dueMonth = Number.parseInt(dueDateParts[1], 10) - 1;
+        return dueYear === currentYear && dueMonth === currentMonth;
+      });
+    }
+
+    return tasks;
+  }
+
+  _getTaskDueDate(task: GoogleTask): string | null {
+    if (!task.due)
+      return null;
+
+    const dueDatePrefix = task.due.slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dueDatePrefix)) {
+      const parsedDate = new Date(`${dueDatePrefix}T00:00:00`);
+      if (!Number.isNaN(parsedDate.getTime()) && this._formatLocalDate(parsedDate) === dueDatePrefix)
+        return dueDatePrefix;
+    }
+
+    const parsedTime = Date.parse(task.due);
+    if (Number.isNaN(parsedTime))
+      return null;
+
+    return this._formatLocalDate(new Date(parsedTime));
+  }
+
+  _formatLocalDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   _sortTasks(tasks: GoogleTask[]): GoogleTask[] {
@@ -835,6 +927,11 @@ export default class GoogleTasksExtension extends Extension {
     if (this._settings && this._showCompletedChangedId !== null) {
       this._settings.disconnect(this._showCompletedChangedId);
       this._showCompletedChangedId = null;
+    }
+
+    if (this._settings && this._timeframeChangedId !== null) {
+      this._settings.disconnect(this._timeframeChangedId);
+      this._timeframeChangedId = null;
     }
     this._settings = null;
 

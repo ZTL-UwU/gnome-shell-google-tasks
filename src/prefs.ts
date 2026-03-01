@@ -7,6 +7,7 @@ import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/
 const REFRESH_INTERVAL_KEY = 'refresh-interval';
 const TASK_SORT_ORDER_KEY = 'task-sort-order';
 const SHOW_COMPLETED_TASKS_KEY = 'show-completed-tasks';
+const TASK_TIMEFRAME_KEY = 'task-timeframe';
 
 const SORT_OPTIONS = [
   { id: 'my-order', label: 'My order' },
@@ -14,6 +15,13 @@ const SORT_OPTIONS = [
   { id: 'deadline', label: 'Deadline' },
   { id: 'starred-recently', label: 'Starred recently' },
   { id: 'title', label: 'Title' },
+];
+
+const TIMEFRAME_OPTIONS = [
+  { id: 'all', label: 'All tasks' },
+  { id: 'today', label: 'Today' },
+  { id: 'this-week', label: 'This week' },
+  { id: 'this-month', label: 'This month' },
 ];
 
 export default class GoogleTasksPreferences extends ExtensionPreferences {
@@ -62,9 +70,26 @@ export default class GoogleTasksPreferences extends ExtensionPreferences {
 
     settings.bind(SHOW_COMPLETED_TASKS_KEY, showCompletedRow, 'active', Gio.SettingsBindFlags.DEFAULT);
 
+    const timeframeRow = new Adw.ComboRow({
+      title: 'Timeframe',
+      subtitle: 'Show tasks due within the selected range.',
+      model: Gtk.StringList.new(TIMEFRAME_OPTIONS.map(option => option.label)),
+    });
+
+    const currentTimeframe = settings.get_string(TASK_TIMEFRAME_KEY);
+    const currentTimeframeIndex = Math.max(0, TIMEFRAME_OPTIONS.findIndex(option => option.id === currentTimeframe));
+    timeframeRow.selected = currentTimeframeIndex;
+
+    timeframeRow.connect('notify::selected', () => {
+      const selectedOption = TIMEFRAME_OPTIONS[timeframeRow.selected];
+      if (selectedOption)
+        settings.set_string(TASK_TIMEFRAME_KEY, selectedOption.id);
+    });
+
     group.add(refreshIntervalRow);
     group.add(sortRow);
     group.add(showCompletedRow);
+    group.add(timeframeRow);
     page.add(group);
     window.add(page);
   }

@@ -27,6 +27,7 @@ A Gnome shell extension to manage your [Google Tasks](https://tasks.google.com) 
 - Configure the refresh interval from extension preferences
 - Choose how tasks are sorted from extension preferences
 - Toggle completed-task visibility from extension preferences
+- Filter tasks by timeframe (today, this week, or this month)
 
 ## License
 
