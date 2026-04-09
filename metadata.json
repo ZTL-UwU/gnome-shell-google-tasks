@@ -4,10 +4,11 @@
   "description": "A Google Tasks widget in the notification center. This extension is not affiliated, funded, or in any way associated with Google.",
   "url": "https://github.com/ZTL-UwU/gnome-shell-google-tasks",
   "shell-version": [
-    "49"
+    "49",
+    "50"
   ],
   "settings-schema": "org.gnome.shell.extensions.googletasks",
-  "version": 5,
+  "version": 6,
   "donations": {
     "kofi": "ztl_uwu"
   }

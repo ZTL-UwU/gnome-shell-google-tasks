@@ -16,7 +16,7 @@ A Gnome shell extension to manage your [Google Tasks](https://tasks.google.com) 
 - openSUSE: `sudo zypper install typelib-1_0-Goa-1_0`
 - Arch-based: works out of the box
 
-[<img width="200" src="https://github.com/andyholmes/gnome-shell-extensions-badge/raw/master/get-it-on-ego.png">](https://extensions.gnome.org/extension/9322/google-tasks/)
+[<img width="200" src="https://github.com/andyholmes/gnome-shell-extensions-badge/raw/master/get-it-on-ego.png" alt="Get it on GNOME Extensions">](https://extensions.gnome.org/extension/9322/google-tasks/)
 
 ## Usage
 

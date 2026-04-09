@@ -12,12 +12,12 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@girs/gjs": "^4.0.0-beta.38",
+    "@girs/gjs": "^4.0.0-rc.1",
     "@girs/gnome-shell": "^49.1.0"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^7.4.3",
+    "@antfu/eslint-config": "^8.1.0",
     "@types/bun": "latest",
-    "eslint": "^10.0.0"
+    "eslint": "^10.2.0"
   }
 }
