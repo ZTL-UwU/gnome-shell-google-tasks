@@ -87,6 +87,7 @@ const AddTaskDialog = GObject.registerClass({
     'task-created': { param_types: [GObject.TYPE_STRING, GObject.TYPE_STRING] },
   },
 }, class AddTaskDialog extends ModalDialog.ModalDialog {
+  private _titleLabel!: St.Label;
   private _entry!: St.Entry;
   private _descriptionEntry!: St.Entry;
 
@@ -96,11 +97,11 @@ const AddTaskDialog = GObject.registerClass({
       destroyOnClose: true,
     });
 
-    const titleLabel = new St.Label({
+    this._titleLabel = new St.Label({
       text: 'New Task',
       style_class: 'google-tasks-dialog-title',
     });
-    this.contentLayout.add_child(titleLabel);
+    this.contentLayout.add_child(this._titleLabel);
 
     this._entry = new St.Entry({
       style_class: 'google-tasks-dialog-entry',
@@ -132,6 +133,10 @@ const AddTaskDialog = GObject.registerClass({
     ]);
 
     this.setInitialKeyFocus(this._entry);
+  }
+
+  setDialogTitle(title: string) {
+    this._titleLabel.set_text(title);
   }
 
   _onAdd() {
@@ -319,9 +324,11 @@ const TasksSection = GObject.registerClass({
     onComplete?: (task: GoogleTask) => void,
     onUncomplete?: (task: GoogleTask) => void,
     onEdit?: (task: GoogleTask) => void,
+    onAddSubtask?: (task: GoogleTask) => void,
+    depth: number = 0,
   ) {
     const box = new St.BoxLayout({
-      style_class: 'task-box',
+      style_class: depth > 0 ? 'task-box task-box-subtask' : 'task-box',
       orientation: Clutter.Orientation.HORIZONTAL,
       y_align: Clutter.ActorAlign.CENTER,
       reactive: true,
@@ -392,6 +399,28 @@ const TasksSection = GObject.registerClass({
       });
     }
 
+    const addSubtaskButton = new St.Button({
+      style_class: 'task-subtask-button',
+      can_focus: true,
+      y_align: Clutter.ActorAlign.CENTER,
+      child: new St.Icon({
+        icon_name: 'list-add-symbolic',
+        icon_size: 12,
+      }),
+    });
+    addSubtaskButton.opacity = 0;
+
+    if (!isCompleted && onAddSubtask) {
+      addSubtaskButton.connect('clicked', () => {
+        onAddSubtask(task);
+        return Clutter.EVENT_STOP;
+      });
+
+      box.connect('notify::hover', () => {
+        addSubtaskButton.opacity = box.hover ? 255 : 0;
+      });
+    }
+
     const editButton = new St.Button({
       style_class: 'task-edit-button',
       can_focus: true,
@@ -416,18 +445,31 @@ const TasksSection = GObject.registerClass({
 
     box.add_child(radio);
     box.add_child(textBox);
+    if (!isCompleted && onAddSubtask)
+      box.add_child(addSubtaskButton);
     box.add_child(editButton);
 
     return box;
   }
 
-  addTask(task: GoogleTask, onComplete?: (task: GoogleTask) => void, onEdit?: (task: GoogleTask) => void) {
-    const row = this._createTaskRow(task, false, onComplete, undefined, onEdit);
+  addTask(
+    task: GoogleTask,
+    onComplete?: (task: GoogleTask) => void,
+    onEdit?: (task: GoogleTask) => void,
+    onAddSubtask?: (task: GoogleTask) => void,
+    depth: number = 0,
+  ) {
+    const row = this._createTaskRow(task, false, onComplete, undefined, onEdit, onAddSubtask, depth);
     this._activeTasksList.add_child(row);
   }
 
-  addCompletedTask(task: GoogleTask, onUncomplete?: (task: GoogleTask) => void, onEdit?: (task: GoogleTask) => void) {
-    const row = this._createTaskRow(task, true, undefined, onUncomplete, onEdit);
+  addCompletedTask(
+    task: GoogleTask,
+    onUncomplete?: (task: GoogleTask) => void,
+    onEdit?: (task: GoogleTask) => void,
+    depth: number = 0,
+  ) {
+    const row = this._createTaskRow(task, true, undefined, onUncomplete, onEdit, undefined, depth);
     this._completedTasksList.add_child(row);
   }
 
@@ -441,12 +483,24 @@ const TasksSection = GObject.registerClass({
     }
 
     this._completedHeaderButton.visible = true;
-    for (const task of tasks) {
-      if (task.title)
-        this.addCompletedTask(task, onUncomplete, onEdit);
-    }
+    this._addCompletedTaskTree(tasks, onUncomplete, onEdit);
 
     this._setCompletedExpanded(this._completedExpanded);
+  }
+
+  private _addCompletedTaskTree(
+    tasks: GoogleTask[],
+    onUncomplete?: (task: GoogleTask) => void,
+    onEdit?: (task: GoogleTask) => void,
+    depth: number = 0,
+  ) {
+    for (const task of tasks) {
+      if (task.title)
+        this.addCompletedTask(task, onUncomplete, onEdit, depth);
+
+      if (task.children && task.children.length > 0)
+        this._addCompletedTaskTree(task.children, onUncomplete, onEdit, depth + 1);
+    }
   }
 
   private _setCompletedExpanded(expanded: boolean) {
@@ -555,20 +609,28 @@ export default class GoogleTasksExtension extends Extension {
     return configuredInterval > 0 ? configuredInterval : REFRESH_INTERVAL_SECONDS;
   }
 
-  _showAddTaskDialog() {
+  _showAddTaskDialog(parentTask?: GoogleTask) {
     const dialog = new AddTaskDialog();
+    if (parentTask)
+      dialog.setDialogTitle('New Subtask');
+
     dialog.connect('task-created', (_dialog: any, title: string, description: string) => {
-      this._onAddTask(title, description, this._selectedTaskListId ?? undefined);
+      this._onAddTask(
+        title,
+        description,
+        parentTask?.taskListId ?? this._selectedTaskListId ?? undefined,
+        parentTask?.id,
+      );
     });
     dialog.open();
   }
 
-  async _onAddTask(title: string, description: string, taskListId?: string) {
+  async _onAddTask(title: string, description: string, taskListId?: string, parentTaskId?: string) {
     if (!this._tasksManager)
       return;
 
     try {
-      await this._tasksManager.createTask(title, description || undefined, taskListId);
+      await this._tasksManager.createTask(title, description || undefined, taskListId, parentTaskId);
       this._refreshTasks();
     }
     catch (e) {
@@ -627,10 +689,14 @@ export default class GoogleTasksExtension extends Extension {
       this._renderCurrentTaskList();
     });
 
-    const activeTasks = this._sortTasks(this._filterTasksByTimeframe(this._activeTasksByListId.get(selectedTaskListId) ?? []));
+    const activeTasks = this._sortTaskTree(
+      this._filterTaskTreeByTimeframe(this._buildTaskTree(this._activeTasksByListId.get(selectedTaskListId) ?? [])),
+    );
     const showCompletedTasks = this._getShowCompletedTasks();
     const completedTasks = showCompletedTasks
-      ? this._sortTasks(this._filterTasksByTimeframe(this._completedTasksByListId.get(selectedTaskListId) ?? []))
+      ? this._sortTaskTree(
+          this._filterTaskTreeByTimeframe(this._buildTaskTree(this._completedTasksByListId.get(selectedTaskListId) ?? [])),
+        )
       : [];
     this._tasksSection.clearTasks();
 
@@ -639,10 +705,7 @@ export default class GoogleTasksExtension extends Extension {
       return;
     }
 
-    for (const task of activeTasks) {
-      if (task.title)
-        this._tasksSection.addTask(task, t => this._onTaskCompleted(t), t => this._onTaskEdit(t));
-    }
+    this._addTaskTree(activeTasks);
 
     if (showCompletedTasks)
       this._tasksSection.setCompletedTasks(completedTasks, t => this._onTaskUncompleted(t), t => this._onTaskEdit(t));
@@ -683,6 +746,75 @@ export default class GoogleTasksExtension extends Extension {
     }
 
     this._renderCurrentTaskList();
+  }
+
+  _buildTaskTree(tasks: GoogleTask[]): GoogleTask[] {
+    const taskNodes = new Map<string, GoogleTask>();
+    const rootTasks: GoogleTask[] = [];
+
+    for (const task of tasks)
+      taskNodes.set(task.id, { ...task, children: [] });
+
+    for (const task of tasks) {
+      const taskNode = taskNodes.get(task.id);
+      if (!taskNode)
+        continue;
+
+      const parentNode = task.parent ? taskNodes.get(task.parent) : null;
+      if (parentNode?.children)
+        parentNode.children.push(taskNode);
+      else
+        rootTasks.push(taskNode);
+    }
+
+    return rootTasks;
+  }
+
+  _filterTaskTreeByTimeframe(tasks: GoogleTask[]): GoogleTask[] {
+    if (this._getTaskTimeframe() === 'all')
+      return tasks;
+
+    const filteredTasks: GoogleTask[] = [];
+    for (const task of tasks) {
+      const filteredChildren = task.children ? this._filterTaskTreeByTimeframe(task.children) : [];
+      const taskMatches = this._filterTasksByTimeframe([task]).length > 0;
+
+      if (taskMatches) {
+        filteredTasks.push(task);
+      }
+      else if (filteredChildren.length > 0) {
+        filteredTasks.push({ ...task, children: filteredChildren });
+      }
+    }
+
+    return filteredTasks;
+  }
+
+  _sortTaskTree(tasks: GoogleTask[]): GoogleTask[] {
+    return this._sortTasks(tasks).map(task => ({
+      ...task,
+      children: task.children ? this._sortTaskTree(task.children) : [],
+    }));
+  }
+
+  _addTaskTree(tasks: GoogleTask[], depth: number = 0) {
+    if (!this._tasksSection)
+      return;
+
+    for (const task of tasks) {
+      if (task.title) {
+        this._tasksSection.addTask(
+          task,
+          t => this._onTaskCompleted(t),
+          t => this._onTaskEdit(t),
+          t => this._onAddSubtask(t),
+          depth,
+        );
+      }
+
+      if (task.children && task.children.length > 0)
+        this._addTaskTree(task.children, depth + 1);
+    }
   }
 
   _getTaskSortOrder(): TaskSortOrder {
@@ -862,6 +994,14 @@ export default class GoogleTasksExtension extends Extension {
       }
     });
     dialog.open();
+  }
+
+  _onAddSubtask(task: GoogleTask) {
+    const dateMenu = Main.panel.statusArea.dateMenu as any;
+    if (dateMenu)
+      dateMenu.menu.close();
+
+    this._showAddTaskDialog(task);
   }
 
   async _onTaskCompleted(task: GoogleTask) {

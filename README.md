@@ -23,17 +23,45 @@ A Gnome shell extension to manage your [Google Tasks](https://tasks.google.com) 
 1. Log in to Gnome Online Accounts with your Google account **(Settings > Online Accounts)**. Make sure "Tasks" is enabled in the OAuth permissions.
 2. Open the notification panel by clicking on the clock in the top bar or pressing `Super + V`.
 
-## Features
+## Development & deploy
 
-- View your Google Tasks in a notification panel widget
-- Add new tasks
-- Mark tasks as completed
-- View completed tasks in a collapsible section
-- Sync with Google Tasks in real-time
-- Configure the refresh interval from extension preferences
-- Choose how tasks are sorted from extension preferences
-- Toggle completed-task visibility from extension preferences
-- Filter tasks by timeframe (today, this week, or this month)
+### Prerequisites
+
+- [Bun](https://bun.sh) — used for dependencies and builds (the `Makefile` runs `bun install` / `bun run build`)
+
+### Setup & build
+
+```sh
+git clone https://github.com/ZTL-UwU/gnome-shell-google-tasks.git
+cd gnome-shell-google-tasks
+bun install       # optional; `make` will install if needed
+make              # compiles TypeScript and copies assets into dist/
+```
+
+- `bun run build` — compile TypeScript to `dist/`
+- `bun run lint` — lint source; `make pack`/`make install` also run ESLint against `dist/` (`lint-dist`)
+
+### Local install & testing
+
+```sh
+make install      # builds, packs googletasks@ztluwu.dev.zip, installs with gnome-extensions
+```
+
+Restart the shell (**Alt+F2**, type `restart`, Enter) so changes load. Use **Extensions** to enable or disable `Google Tasks`.
+
+### Packaging for release
+
+```sh
+make clean && make pack
+```
+
+This produces `googletasks@ztluwu.dev.zip` in the project root — upload this to [extensions.gnome.org](https://extensions.gnome.org) or distribute manually.
+
+### Clean build artifacts
+
+```sh
+make clean        # removes dist/, node_modules/, and the zip
+```
 
 ## License
 

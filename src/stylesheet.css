@@ -8,6 +8,10 @@
     spacing: 12px;
 }
 
+.task-box-subtask {
+    margin-left: 24px;
+}
+
 .task-radio {
     width: 12px;
     height: 12px;
@@ -79,6 +83,18 @@
 }
 
 .task-edit-button:hover {
+    opacity: 1;
+    background-color: rgba(128, 128, 128, 0.3);
+}
+
+.task-subtask-button {
+    border-radius: 6px;
+    width: 20px;
+    height: 20px;
+    opacity: 0.6;
+}
+
+.task-subtask-button:hover {
     opacity: 1;
     background-color: rgba(128, 128, 128, 0.3);
 }

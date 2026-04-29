@@ -11,9 +11,11 @@ export interface GoogleTask {
   notes?: string;
   status: string;
   taskListId?: string;
+  parent?: string;
   due?: string;
   updated?: string;
   position?: string;
+  children?: GoogleTask[];
 }
 
 export interface GoogleTaskList {
@@ -124,7 +126,7 @@ export class GoogleTasksManager {
     }
   }
 
-  async createTask(title: string, notes?: string, taskListId?: string): Promise<void> {
+  async createTask(title: string, notes?: string, taskListId?: string, parentTaskId?: string): Promise<void> {
     try {
       const accessToken = await this._getAccessToken();
 
@@ -139,7 +141,8 @@ export class GoogleTasksManager {
         resolvedTaskListId = listsData.items[0].id;
       }
 
-      const url = `https://tasks.googleapis.com/tasks/v1/lists/${resolvedTaskListId}/tasks`;
+      const parentParam = parentTaskId ? `?parent=${encodeURIComponent(parentTaskId)}` : '';
+      const url = `https://tasks.googleapis.com/tasks/v1/lists/${resolvedTaskListId}/tasks${parentParam}`;
       const body: Record<string, string> = { title };
       if (notes)
         body.notes = notes;

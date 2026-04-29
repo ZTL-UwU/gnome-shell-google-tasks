@@ -6,6 +6,5 @@ export default antfu({
   },
   rules: {
     'prefer-rest-params': 'warn',
-    'e18e/prefer-static-regex': 'warn',
   },
 });
