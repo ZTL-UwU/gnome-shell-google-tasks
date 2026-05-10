@@ -13,13 +13,13 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@girs/gjs": "^4.0.0-rc.6",
-    "@girs/gnome-shell": "^49.1.0"
+    "@girs/gjs": "^4.0.0-rc.15",
+    "@girs/gnome-shell": "^50.0.0"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^8.2.0",
     "@types/bun": "latest",
-    "eslint": "^10.2.1",
+    "eslint": "^10.3.0",
     "taze": "^19.11.0"
   }
 }
