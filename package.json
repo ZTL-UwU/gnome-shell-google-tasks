@@ -9,17 +9,15 @@
     "lint:dist": "eslint dist --fix --no-ignore",
     "typecheck": "tsc --noEmit"
   },
-  "peerDependencies": {
-    "typescript": "^5.9.3"
-  },
   "dependencies": {
-    "@girs/gjs": "^4.0.0-rc.15",
-    "@girs/gnome-shell": "^50.0.0"
+    "@girs/gjs": "^5.5.0",
+    "@girs/gnome-shell": "^50.0.4"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^8.2.0",
+    "@antfu/eslint-config": "^9.5.1",
     "@types/bun": "latest",
-    "eslint": "^10.3.0",
-    "taze": "^19.11.0"
+    "eslint": "^10.12.0",
+    "taze": "^21.3.0",
+    "typescript": "^5.9.3"
   }
 }

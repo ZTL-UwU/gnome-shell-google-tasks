@@ -5,10 +5,11 @@
   "url": "https://github.com/ZTL-UwU/gnome-shell-google-tasks",
   "shell-version": [
     "49",
-    "50"
+    "50",
+    "51"
   ],
   "settings-schema": "org.gnome.shell.extensions.googletasks",
-  "version": 7,
+  "version": 8,
   "donations": {
     "kofi": "ztl_uwu"
   }
